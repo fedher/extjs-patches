@@ -1,0 +1,251 @@
+--- ext-all-4.1.0.js	2013-07-02 14:05:21.581970045 -0300
++++ ext-all-4.1.0-fix.js	2013-07-02 14:10:58.805976376 -0300
+@@ -68657,6 +68657,72 @@
+         return sorters;
+     },
+ 
++    _group: function(sorters, direction, where, doSort) {
++        var me = this,
++            sorter, sorterFn,
++            newSorters;
++
++        if (Ext.isArray(sorters)) {
++            doSort = where;
++            where = direction;
++            newSorters = sorters;
++        }
++        else if (Ext.isObject(sorters)) {
++            doSort = where;
++            where = direction;
++            newSorters = [sorters];
++        }
++        else if (Ext.isString(sorters)) {
++            sorter = me.sorters.get(sorters);
++
++            if (!sorter) {
++                sorter = {
++                    property : sorters,
++                    direction: direction
++                };
++                newSorters = [sorter];
++            }
++            else if (direction === undefined) {
++                sorter.toggle();
++            }
++            else {
++                sorter.setDirection(direction);
++            }
++        }
++
++        if (newSorters && newSorters.length) {
++            newSorters = me.decodeSorters(newSorters);
++            if (Ext.isString(where)) {
++                if (where === 'prepend') {
++                    sorters = me.sorters.clone().items;
++
++                    me.sorters.clear();
++                    me.sorters.addAll(newSorters);
++                    me.sorters.addAll(sorters);
++                }
++                else {
++                    me.sorters.addAll(newSorters);
++                }
++            }
++            else {
++                me.sorters.clear();
++                me.sorters.addAll(newSorters);
++            }
++        }
++
++        if (doSort !== false) {
++            me.onBeforeSort(newSorters);
++
++            sorters = me.sorters.items;
++            if (sorters.length) {
++                // Sort using a generated sorter function which combines all of the Sorters passed
++                me.doGroup(me.generateComparator());
++            }
++        }
++
++        return sorters;
++    },
++
+     /**
+      * <p>Returns a comparator function which compares two items and returns -1, 0, or 1 depending
+      * on the currently defined set of {@link #sorters}.</p>
+@@ -68811,6 +68877,10 @@
+         this.sortBy(sorterFn);
+     },
+ 
++	doGroup: function(sorterFn) {
++        this.sortBy(sorterFn);
++	},
++
+     /**
+      * @private
+      * Performs the actual sorting based on a direction and a sorting function. Internally,
+@@ -70100,6 +70170,18 @@
+         }
+     },
+ 
++    doGroup: function(sorterFn) {
++        var me = this;
++        if (me.remoteGroup) {
++            //the load function will pick up the new sorters and request the sorted data from the proxy
++            me.load();
++        } else {
++            me.data.sortBy(sorterFn);
++            me.fireEvent('datachanged', me);
++            me.fireEvent('refresh', me);
++        }
++    },
++
+     // to be implemented by subclasses
+     clearData: Ext.emptyFn,
+ 
+@@ -72668,7 +72750,21 @@
+             me.fireEvent('refresh', me);
+         }
+         me.fireEvent('sort', me);
++    },
++
++    doGroup: function(sorterFn) {
++        var me = this;
++        if (me.remoteGroup) {
++            //the load function will pick up the new sorters and request the sorted data from the proxy
++            me.load();
++        } else {
++            me.tree.sort(sorterFn, true);
++            me.fireEvent('datachanged', me);
++            me.fireEvent('refresh', me);
++        }
++        me.fireEvent('sort', me);
+     }
++
+ }, function() {
+     var proto = this.prototype;
+     proto.indexSorter = new Ext.util.Sorter({
+@@ -73462,6 +73558,29 @@
+                 me.add.apply(me, [data]);
+             }
+ 
++            // Beginning grouped, group using existing grouper collection but suppress events
++            if (me.groupers.items.length && !me.remoteGroup) {
++                me.group(null, null, true);
++            }
++
++            // Grouping will sort, so not grouped, but locally sorted, just sort
++            else if (!me.remoteSort) {
++                me.sort();
++            }
++            delete me.inlineData;
++        } else if (me.autoLoad) {
++            // Defer the load until after the current event handler has finished and set up any associated views.
++            Ext.defer(me.load, 1, me, [ typeof me.autoLoad === 'object' ? me.autoLoad : undefined ]);
++        }
++/*
++        if (data) {
++            if (proxy instanceof Ext.data.proxy.Memory) {
++                proxy.data = data;
++                me.read();
++            } else {
++                me.add.apply(me, [data]);
++            }
++
+             me.sort();
+             delete me.inlineData;
+         } else if (me.autoLoad) {
+@@ -73469,6 +73588,7 @@
+             // Remove the defer call, we may need reinstate this at some point, but currently it's not obvious why it's here.
+             // this.load(typeof this.autoLoad == 'object' ? this.autoLoad : undefined);
+         }
++*/
+     },
+ 
+     destroy: function() {
+@@ -73589,7 +73709,7 @@
+             });
+         } else {
+             // need to explicitly force a sort if we have groupers
+-            me.sort(null, null, null, hasNew);
++            me._group(null, null, null, hasNew);
+             me.fireGroupChange();
+         }
+     },
+@@ -74874,6 +74994,22 @@
+         }
+     },
+ 
++    _group: function() {
++        var me = this,
++            prefetchData = me.pageMap;
++
++        if (me.buffered) {
++            if (me.remoteGroup) {
++                prefetchData.clear();
++                me.callParent(arguments);
++            } else {
++                me.callParent(arguments);
++            }
++        } else {
++            me.callParent(arguments);
++        }
++    },
++
+     // overriden to provide striping of the indexes as sorting occurs.
+     // this cannot be done inside of sort because datachanged has already
+     // fired and will trigger a repaint of the bound view.
+@@ -74909,6 +75045,38 @@
+         }
+     },
+ 
++    doGroup: function(sorterFn) {
++        var me = this,
++            range,
++            ln,
++            i;
++
++        if (me.remoteGroup) {
++            // For a buffered Store, we have to clear the prefetch cache since it is keyed by the index within the dataset.
++            // Then we must prefetch the new page 1, and when that arrives, reload the visible part of the Store
++            // via the guaranteedrange event
++            if (me.buffered) {
++                me.pageMap.clear();
++                me.loadPage(1);
++            } else {
++                //the load function will pick up the new sorters and request the sorted data from the proxy
++                me.load();
++            }
++        } else {
++            me.data.sortBy(sorterFn);
++            if (!me.buffered) {
++                range = me.getRange();
++                ln = range.length;
++                i = 0;
++                for (; i < ln; i++) {
++                    range[i].index = i;
++                }
++            }
++            me.fireEvent('datachanged', me);
++            me.fireEvent('refresh', me);
++        }
++    },
++
+     /**
+      * Finds the index of the first matching Record in this store by a specific field value.
+      *
+@@ -125827,6 +125995,14 @@
+             property: this.getSortParam(),
+             direction: state
+         });
++    },
++
++    doGroup: function(state) {
++        var ds = this.up('tablepanel').store;
++        ds._group({
++            property: this.getSortParam(),
++            direction: state
++        });
+     },
+ 
+     /**
