@@ -1,0 +1,75 @@
+BUG INFO
+========
+
+Ext version tested
+------------------
+
+* Ext 4.1.0
+* Ext 4.2.1
+
+
+Browser versions tested against
+-------------------------------
+
+* Chromium 28.0.1500.52
+* Google Chrome 28.0.1500.70
+* FF 22.0
+
+
+Description
+-----------
+
+* The remoteGroup config attribute in the Ext.data.Store is not taken into 
+account to perform a grouping task locally over the records. It always takes 
+the remoteSort config attribute value instead.
+* It works on FF
+* It doesn't work on Chromium and Chrome.
+
+
+Steps to reproduce the problem
+------------------------------
+
+* Create an store with remoteSort in true and remoteGroup in false.
+* Click on group item and the in sort item (context menu).
+
+
+The result that was expected
+----------------------------
+
+* Sorting is performed remotely and grouping locally.
+
+
+The result that occurs instead
+------------------------------
+
+* Both actions perform an AJAX request.
+
+
+Test Case
+---------
+
+   
+var store = Ext.create('Ext.data.Store', {
+	model: '...',
+	pageSize: 50,
+	groupField: '...',
+
+	remoteSort: true,
+	remoteGroup: false,
+
+	autoLoad: false,
+
+	proxy: {
+		type: 'direct',
+		directFn: ...,
+		....
+	}
+});
+
+
+
+Operating System
+----------------
+
+* Ubuntu 13.04
+
