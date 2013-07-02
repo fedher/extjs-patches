@@ -4,8 +4,7 @@ CHANGELOG
 * ExtJs 4.1.0:
 
 	- The patch ext-all-01072013.js.patch fixes an issue in Ext.data.Store by 
-	which the remoteGroup parameter was not taken into account to group 
-	locally. Whatever was the remoteGroup value, it took the remoteSort value 
-	instead.
-
+	which the remoteGroup config attribute was not taken into account to group 
+	locally. Whatever was the remoteGroup value, it took the remoteSort 
+	attribute value instead.
 
