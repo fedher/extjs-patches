@@ -1,5 +1,5 @@
 --- ext-all-4.1.0.js	2013-07-02 14:05:21.581970045 -0300
-+++ ext-all-4.1.0-fix.js	2013-07-02 14:10:58.805976376 -0300
++++ ext-all-4.1.0-fix.js	2013-07-03 09:46:48.900423919 -0300
 @@ -68657,6 +68657,72 @@
          return sorters;
      },
@@ -73,18 +73,7 @@
      /**
       * <p>Returns a comparator function which compares two items and returns -1, 0, or 1 depending
       * on the currently defined set of {@link #sorters}.</p>
-@@ -68811,6 +68877,10 @@
-         this.sortBy(sorterFn);
-     },
- 
-+	doGroup: function(sorterFn) {
-+        this.sortBy(sorterFn);
-+	},
-+
-     /**
-      * @private
-      * Performs the actual sorting based on a direction and a sorting function. Internally,
-@@ -70100,6 +70170,18 @@
+@@ -70100,6 +70166,18 @@
          }
      },
  
@@ -103,7 +92,7 @@
      // to be implemented by subclasses
      clearData: Ext.emptyFn,
  
-@@ -72668,7 +72750,21 @@
+@@ -72668,7 +72746,21 @@
              me.fireEvent('refresh', me);
          }
          me.fireEvent('sort', me);
@@ -125,7 +114,7 @@
  }, function() {
      var proto = this.prototype;
      proto.indexSorter = new Ext.util.Sorter({
-@@ -73462,6 +73558,29 @@
+@@ -73462,6 +73554,29 @@
                  me.add.apply(me, [data]);
              }
  
@@ -155,7 +144,7 @@
              me.sort();
              delete me.inlineData;
          } else if (me.autoLoad) {
-@@ -73469,6 +73588,7 @@
+@@ -73469,6 +73584,7 @@
              // Remove the defer call, we may need reinstate this at some point, but currently it's not obvious why it's here.
              // this.load(typeof this.autoLoad == 'object' ? this.autoLoad : undefined);
          }
@@ -163,7 +152,7 @@
      },
  
      destroy: function() {
-@@ -73589,7 +73709,7 @@
+@@ -73589,7 +73705,7 @@
              });
          } else {
              // need to explicitly force a sort if we have groupers
@@ -172,7 +161,7 @@
              me.fireGroupChange();
          }
      },
-@@ -74874,6 +74994,22 @@
+@@ -74874,6 +74990,22 @@
          }
      },
  
@@ -195,7 +184,7 @@
      // overriden to provide striping of the indexes as sorting occurs.
      // this cannot be done inside of sort because datachanged has already
      // fired and will trigger a repaint of the bound view.
-@@ -74909,6 +75045,38 @@
+@@ -74909,6 +75041,38 @@
          }
      },
  
@@ -234,7 +223,7 @@
      /**
       * Finds the index of the first matching Record in this store by a specific field value.
       *
-@@ -125827,6 +125995,14 @@
+@@ -125827,6 +125991,14 @@
              property: this.getSortParam(),
              direction: state
          });
