@@ -29,8 +29,8 @@ the remoteSort config attribute value instead.
 Steps to reproduce the problem
 ------------------------------
 
-* Create an store with remoteSort in true and remoteGroup in false.
-* Click on group item and the in sort item (context menu).
+* Create an store with remoteSort set to true and remoteGroup set to false.
+* Click on group item and then on sort item (context menu).
 
 
 The result that was expected
